@@ -61,6 +61,14 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Ensure Artifact Registry Repository Exists
+        run: |
+          gcloud artifacts repositories describe grocscan-repo --location=${{ env.GCP_REGION }} || \
+          gcloud artifacts repositories create grocscan-repo \
+            --repository-format=docker \
+            --location=${{ env.GCP_REGION }} \
+            --description="Docker repository for GrocScan test images"
+
       - name: Configure Docker for Google Artifact Registry
         run: gcloud auth configure-docker asia-south1-docker.pkg.dev --quiet
 
