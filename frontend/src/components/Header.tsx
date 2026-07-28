@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, Globe, ShoppingBag, Barcode, Bell, Search } from 'lucide-react';
 
 interface HeaderProps {
@@ -10,6 +10,9 @@ interface HeaderProps {
   onTabChange: (tab: 'search' | 'cart' | 'barcode' | 'alerts') => void;
   cartCount: number;
   alertsCount?: number;
+  /** When true, automatically opens the location modal (e.g. when GPS was denied) */
+  openLocationModal?: boolean;
+  onLocationModalClosed?: () => void;
 }
 
 const TABS = [
@@ -22,11 +25,22 @@ const TABS = [
 export const Header: React.FC<HeaderProps> = ({
   pincode, onPincodeChange, lang, onToggleLang,
   activeTab, onTabChange, cartCount, alertsCount = 0,
+  openLocationModal = false, onLocationModalClosed,
 }) => {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [tempPin, setTempPin] = useState(pincode);
   const [detecting, setDetecting] = useState(false);
   const [pinError, setPinError] = useState('');
+
+  // Auto-open modal when parent signals GPS was denied
+  useEffect(() => {
+    if (openLocationModal) {
+      setTempPin(pincode);
+      setPinError('Location permission denied — please enter your pincode manually.');
+      setShowLocationModal(true);
+      onLocationModalClosed?.();
+    }
+  }, [openLocationModal]);
 
   const handleSavePin = () => {
     if (tempPin.length === 6 && /^\d{6}$/.test(tempPin)) {
@@ -40,28 +54,50 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleDetectGPS = () => {
     setDetecting(true);
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          setTimeout(() => {
-            onPincodeChange('400001');
-            setTempPin('400001');
-            setDetecting(false);
-            setShowLocationModal(false);
-          }, 800);
-        },
-        () => {
-          onPincodeChange('400001');
-          setTempPin('400001');
-          setDetecting(false);
-          setShowLocationModal(false);
-        }
-      );
-    } else {
-      onPincodeChange('400001');
+    setPinError('');
+
+    if (!('geolocation' in navigator)) {
+      setPinError('GPS not supported on this browser.');
       setDetecting(false);
-      setShowLocationModal(false);
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          // Reverse-geocode using OpenStreetMap Nominatim (free, no API key)
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          const data = await res.json();
+          const postcode: string = data?.address?.postcode?.replace(/\s/g, '') || '';
+
+          if (postcode && /^\d{6}$/.test(postcode)) {
+            setTempPin(postcode);
+            onPincodeChange(postcode);
+            setShowLocationModal(false);
+          } else {
+            // Postcode exists but non-Indian format — use coords-based fallback
+            setPinError(`Detected location but couldn't resolve an Indian pincode. Enter manually.`);
+          }
+        } catch {
+          setPinError('Could not resolve location. Please enter pincode manually.');
+        } finally {
+          setDetecting(false);
+        }
+      },
+      (err) => {
+        setDetecting(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setPinError('Location permission denied. Please enter pincode manually.');
+        } else {
+          setPinError('Could not get location. Please enter pincode manually.');
+        }
+      },
+      { timeout: 10000, maximumAge: 60000 }
+    );
   };
 
   const badgeCount: Record<string, number> = {

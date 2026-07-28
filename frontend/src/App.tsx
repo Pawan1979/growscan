@@ -37,6 +37,53 @@ export const App: React.FC = () => {
   const [trendProduct, setTrendProduct] = useState<string | null>(null);
   const [alertItem, setAlertItem] = useState<PlatformPrice | null>(null);
 
+  // GPS auto-detection state
+  const [locationStatus, setLocationStatus] = useState<'detecting' | 'granted' | 'denied' | 'idle'>('idle');
+  const [openLocationModal, setOpenLocationModal] = useState(false);
+
+  // ── Auto-detect location on first load ──────────────────────────────────
+  useEffect(() => {
+    if (!('geolocation' in navigator)) {
+      setOpenLocationModal(true);
+      return;
+    }
+
+    setLocationStatus('detecting');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          const data = await res.json();
+          const postcode: string = data?.address?.postcode?.replace(/\s/g, '') || '';
+          if (postcode && /^\d{6}$/.test(postcode)) {
+            setPincode(postcode);
+            setLocationStatus('granted');
+            // Auto-hide the success toast after 3 s
+            setTimeout(() => setLocationStatus('idle'), 3000);
+          } else {
+            // GPS worked but couldn't get Indian pincode — ask manually
+            setLocationStatus('denied');
+            setOpenLocationModal(true);
+          }
+        } catch {
+          setLocationStatus('denied');
+          setOpenLocationModal(true);
+        }
+      },
+      () => {
+        // User denied or GPS unavailable
+        setLocationStatus('denied');
+        setOpenLocationModal(true);
+      },
+      { timeout: 10000, maximumAge: 300000 }
+    );
+  }, []);
+
   // Register PWA Service Worker
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -105,7 +152,22 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-16">
-      
+
+      {/* GPS Detecting Toast */}
+      {locationStatus === 'detecting' && (
+        <div className="fixed top-0 left-0 right-0 z-[9999] bg-indigo-600 text-white text-xs font-semibold text-center py-1.5 flex items-center justify-center gap-2">
+          <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          Detecting your location…
+        </div>
+      )}
+
+      {/* Location Granted Toast */}
+      {locationStatus === 'granted' && (
+        <div className="fixed top-0 left-0 right-0 z-[9999] bg-emerald-600 text-white text-xs font-semibold text-center py-1.5 animate-pulse-subtle">
+          📍 Location detected — showing prices for pincode {pincode}
+        </div>
+      )}
+
       {/* Top Sticky Header */}
       <Header
         pincode={pincode}
@@ -116,6 +178,8 @@ export const App: React.FC = () => {
         onTabChange={(t) => setActiveTab(t)}
         cartCount={cartItems.reduce((a, b) => a + b.quantity, 0)}
         alertsCount={alertsCount}
+        openLocationModal={openLocationModal}
+        onLocationModalClosed={() => setOpenLocationModal(false)}
       />
 
       {/* Main Body Container */}
