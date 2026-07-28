@@ -62,8 +62,49 @@ This document provides a comprehensive end-to-end record of the **GrocScan** ful
 3. **Stage 3 (Cloud Run Deployment)**: Deploys `grocscan-backend-test` (port 5000) and `grocscan-frontend-test` (port 8080) in `asia-south1`.
 
 ### 3.2 GCP Secrets Configured in GitHub
-- **`GCP_PROJECT_ID`**: `grocscan-app-15175`
-- **`GCP_SA_KEY`**: Service account JSON key for `github-cicd-deployer@grocscan-app-15175.iam.gserviceaccount.com`.
+- **`GCP_PROJECT_ID`**: Your Google Cloud Project ID (e.g. `grocscan-app-XXXXX`).
+- **`GCP_SA_KEY`**: Service account JSON key for `github-cicd-deployer`.
+
+### 3.3 Step-by-Step GCP Cloud Configuration Process (Safe & Zero Secrets Exposed)
+
+#### Step A: Create GCP Project & Enable APIs
+In [Google Cloud Shell](https://shell.cloud.google.com/), run:
+```bash
+# 1. Create a new GCP project
+PROJECT_ID="grocscan-app-$RANDOM"
+gcloud projects create $PROJECT_ID --name="GrocScan App"
+gcloud config set project $PROJECT_ID
+
+# 2. Enable Required Cloud APIs
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com
+```
+
+#### Step B: Create Docker Repository in Artifact Registry
+```bash
+gcloud artifacts repositories create grocscan-repo \
+  --repository-format=docker \
+  --location=asia-south1 \
+  --description="GrocScan Docker Repository"
+```
+
+#### Step C: Create Deployment Service Account & Grant IAM Roles
+```bash
+# 1. Create Service Account
+gcloud iam service-accounts create github-cicd-deployer --display-name="GitHub Actions Deployer"
+
+# 2. Assign Minimal Required IAM Roles
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:github-cicd-deployer@$PROJECT_ID.iam.gserviceaccount.com" --role="roles/run.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:github-cicd-deployer@$PROJECT_ID.iam.gserviceaccount.com" --role="roles/artifactregistry.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:github-cicd-deployer@$PROJECT_ID.iam.gserviceaccount.com" --role="roles/iam.serviceAccountUser"
+```
+
+#### Step D: Generate Key & Add Secrets to GitHub (Security Rule)
+```bash
+# Generate key file locally in Cloud Shell
+gcloud iam service-accounts keys create gcp-key.json --iam-account=github-cicd-deployer@$PROJECT_ID.iam.gserviceaccount.com
+```
+- **Security Rule**: Never commit `gcp-key.json` to Git or expose private keys in codebase files.
+- Copy the JSON key and add it into **GitHub Repository Secrets** (`Settings ➔ Secrets and variables ➔ Actions` ➔ `GCP_SA_KEY`).
 
 ---
 
