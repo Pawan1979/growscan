@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
+import { BottomNav } from './components/BottomNav';
 import { SearchBar } from './components/SearchBar';
 import { ProductCard } from './components/ProductCard';
 import { CartManager } from './components/CartManager';
@@ -151,7 +152,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-16">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-8">
 
       {/* GPS Detecting Toast */}
       {locationStatus === 'detecting' && (
@@ -168,6 +169,9 @@ export const App: React.FC = () => {
         </div>
       )}
 
+      {/* PWA Install Banner */}
+      <InstallPwaBanner />
+
       {/* Top Sticky Header */}
       <Header
         pincode={pincode}
@@ -182,8 +186,17 @@ export const App: React.FC = () => {
         onLocationModalClosed={() => setOpenLocationModal(false)}
       />
 
+      {/* Mobile Bottom Navigation */}
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={(t) => setActiveTab(t)}
+        lang={lang}
+        cartCount={cartItems.reduce((a, b) => a + b.quantity, 0)}
+        alertsCount={alertsCount}
+      />
+
       {/* Main Body Container */}
-      <main className="container flex-1">
+      <main className="container flex-1 mt-4 md:mt-8">
         
         {/* TAB 1: SINGLE PRODUCT SEARCH */}
         {activeTab === 'search' && (

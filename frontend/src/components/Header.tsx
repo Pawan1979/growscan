@@ -147,8 +147,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* ── Navigation Tabs ── */}
-        <div className="flex border-t border-slate-800/60">
+        {/* ── Navigation Tabs (Tablet/Desktop Only) ── */}
+        <div className="hidden md:flex border-t border-slate-800/60 max-w-2xl mx-auto">
           {TABS.map(({ id, label, labelHi, icon: Icon }) => {
             const isActive = activeTab === id;
             const badge = badgeCount[id];
@@ -156,24 +156,24 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 key={id}
                 onClick={() => onTabChange(id as any)}
-                className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-bold transition-all relative ${
+                className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold transition-all relative ${
                   isActive
                     ? 'text-indigo-400 bg-indigo-500/10'
                     : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
                 }`}
               >
                 {isActive && (
-                  <span className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-b" />
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-500" />
                 )}
-                <span className="relative">
+                <span className="relative flex items-center gap-2">
                   <Icon className="w-4 h-4" />
+                  <span>{lang === 'hi' ? labelHi : label}</span>
                   {badge > 0 && (
-                    <span className="absolute -top-1.5 -right-2 bg-emerald-500 text-slate-950 font-black text-[8px] px-1 rounded-full min-w-[14px] text-center">
+                    <span className="bg-emerald-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded-full ml-1">
                       {badge}
                     </span>
                   )}
                 </span>
-                <span>{lang === 'hi' ? labelHi : label}</span>
               </button>
             );
           })}
