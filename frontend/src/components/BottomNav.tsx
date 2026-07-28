@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, ShoppingBag, Barcode, Bell } from 'lucide-react';
+import { Search, ShoppingBag, Bell } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: 'search' | 'cart' | 'alerts';

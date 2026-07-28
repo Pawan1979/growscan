@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Navigation, Globe, ShoppingBag, Barcode, Bell, Search } from 'lucide-react';
+import { MapPin, Navigation, Globe, ShoppingBag, Bell, Search } from 'lucide-react';
 
 interface HeaderProps {
   pincode: string;
