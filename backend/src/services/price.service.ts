@@ -98,8 +98,8 @@ export class PriceService {
 
     const location = resolveLocation(pincode);
 
-    // If QuickCommerceAPI key exists, attempt live call
-    if (QC_API_KEY && QC_API_KEY.startsWith('sk_live')) {
+    // If QuickCommerceAPI key exists in environment, attempt live API call
+    if (QC_API_KEY && QC_API_KEY.trim().length > 0) {
       try {
         const response = await axios.get('https://api.quickcommerceapi.com/v1/groupsearch', {
           params: { q: query, pincode, lat: location.lat, lon: location.lng },
