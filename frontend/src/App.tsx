@@ -4,7 +4,6 @@ import { BottomNav } from './components/BottomNav';
 import { SearchBar } from './components/SearchBar';
 import { ProductCard } from './components/ProductCard';
 import { CartManager } from './components/CartManager';
-import { BarcodeScannerModal } from './components/BarcodeScannerModal';
 import { ShareCardModal } from './components/ShareCardModal';
 import { PriceHistoryModal } from './components/PriceHistoryModal';
 import { PriceAlertModal } from './components/PriceAlertModal';
@@ -18,7 +17,7 @@ import { getApiUrl } from './config/api';
 export const App: React.FC = () => {
   const [pincode, setPincode] = useState('400001');
   const [lang, setLang] = useState<'en' | 'hi'>('en');
-  const [activeTab, setActiveTab] = useState<'search' | 'cart' | 'barcode' | 'alerts'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'cart' | 'alerts'>('search');
 
   const [activePasses, setActivePasses] = useState<string[]>(['swiggy_one', 'zepto_super']);
 
@@ -283,13 +282,6 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* TAB 3: BARCODE SCANNER */}
-        {activeTab === 'barcode' && (
-          <BarcodeScannerModal
-            onClose={() => setActiveTab('search')}
-            pincode={pincode}
-          />
-        )}
 
         {/* TAB 4: SAVED PRICE ALERTS */}
         {activeTab === 'alerts' && <AlertsManager />}

@@ -2,8 +2,8 @@ import React from 'react';
 import { Search, ShoppingBag, Barcode, Bell } from 'lucide-react';
 
 interface BottomNavProps {
-  activeTab: 'search' | 'cart' | 'barcode' | 'alerts';
-  onTabChange: (tab: 'search' | 'cart' | 'barcode' | 'alerts') => void;
+  activeTab: 'search' | 'cart' | 'alerts';
+  onTabChange: (tab: 'search' | 'cart' | 'alerts') => void;
   lang: 'en' | 'hi';
   cartCount: number;
   alertsCount?: number;
@@ -12,7 +12,6 @@ interface BottomNavProps {
 const TABS = [
   { id: 'search',  label: 'Search',  labelHi: 'सर्च',     icon: Search },
   { id: 'cart',    label: 'Cart',    labelHi: 'कार्ट',     icon: ShoppingBag },
-  { id: 'barcode', label: 'Scan',    labelHi: 'स्कैन',     icon: Barcode },
   { id: 'alerts',  label: 'Alerts',  labelHi: 'अलर्ट',     icon: Bell },
 ] as const;
 
