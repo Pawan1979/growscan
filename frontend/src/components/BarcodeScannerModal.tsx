@@ -14,6 +14,8 @@ const SAMPLE_BARCODES = [
   { label: 'Surf Excel Powder', code: '8901030855555' },
 ];
 
+import { getApiUrl } from '../config/api';
+
 export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ onClose, pincode }) => {
   const [manualCode, setManualCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ onClos
 
   const handleScanCode = (codeToScan: string) => {
     setLoading(true);
-    fetch(`/api/barcode/${codeToScan}?pin=${pincode}`)
+    fetch(getApiUrl(`/api/barcode/${codeToScan}?pin=${pincode}`))
       .then((res) => res.json())
       .then((data) => {
         setResult(data);

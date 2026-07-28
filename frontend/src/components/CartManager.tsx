@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CartItem, CartComparisonResult } from '../types';
 import { Trash2, Plus, Minus, Sparkles, ShoppingBag } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 interface CartManagerProps {
   cartItems: CartItem[];
@@ -27,7 +28,7 @@ export const CartManager: React.FC<CartManagerProps> = ({
       return;
     }
     setLoading(true);
-    fetch('/api/cart/compare', {
+    fetch(getApiUrl('/api/cart/compare'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

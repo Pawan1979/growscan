@@ -12,6 +12,7 @@ import { PassSelector } from './components/PassSelector';
 import { InstallPwaBanner } from './components/InstallPwaBanner';
 import { ComparisonResult, CartItem, PlatformPrice } from './types';
 import { Share2 } from 'lucide-react';
+import { getApiUrl } from './config/api';
 
 export const App: React.FC = () => {
   const [pincode, setPincode] = useState('400001');
@@ -51,7 +52,7 @@ export const App: React.FC = () => {
     setCurrentQuery(query);
     setLoading(true);
     const passesParam = passes.join(',');
-    fetch(`/api/compare?q=${encodeURIComponent(query)}&pin=${pincode}&passes=${passesParam}`)
+    fetch(getApiUrl(`/api/compare?q=${encodeURIComponent(query)}&pin=${pincode}&passes=${passesParam}`))
       .then((res) => res.json())
       .then((data) => {
         setSearchResult(data);

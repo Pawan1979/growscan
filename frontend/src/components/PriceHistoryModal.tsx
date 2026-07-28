@@ -20,13 +20,15 @@ interface PriceHistoryModalProps {
   onClose: () => void;
 }
 
+import { getApiUrl } from '../config/api';
+
 export const PriceHistoryModal: React.FC<PriceHistoryModalProps> = ({ productName, onClose }) => {
   const [data, setData] = useState<PriceHistoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activePlatform, setActivePlatform] = useState<string>('all');
 
   useEffect(() => {
-    fetch(`/api/products/history?q=${encodeURIComponent(productName)}`)
+    fetch(getApiUrl(`/api/products/history?q=${encodeURIComponent(productName)}`))
       .then((res) => res.json())
       .then((d) => {
         setData(d);

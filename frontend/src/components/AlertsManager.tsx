@@ -12,13 +12,15 @@ export interface AlertItem {
   createdAt: string;
 }
 
+import { getApiUrl } from '../config/api';
+
 export const AlertsManager: React.FC = () => {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchAlerts = () => {
     setLoading(true);
-    fetch('/api/alerts')
+    fetch(getApiUrl('/api/alerts'))
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setAlerts(data);
@@ -32,7 +34,7 @@ export const AlertsManager: React.FC = () => {
   }, []);
 
   const handleDelete = (id: string) => {
-    fetch(`/api/alerts/${id}`, { method: 'DELETE' })
+    fetch(getApiUrl(`/api/alerts/${id}`), { method: 'DELETE' })
       .then((res) => res.json())
       .then(() => {
         setAlerts(alerts.filter((a) => a.id !== id));

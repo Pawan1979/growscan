@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Bell, CheckCircle2 } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 import { PlatformPrice } from '../types';
 
 interface PriceAlertModalProps {
@@ -24,7 +25,7 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({
     e.preventDefault();
     setSubmitting(true);
 
-    fetch('/api/alerts', {
+    fetch(getApiUrl('/api/alerts'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
