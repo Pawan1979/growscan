@@ -36,6 +36,6 @@ describe('ProductCard Component', () => {
     expect(screen.getByText('Amul Taaza Milk 500ml')).toBeDefined();
     expect(screen.getByText('Blinkit')).toBeDefined();
     expect(screen.getByText('₹27')).toBeDefined();
-    expect(screen.getByText('Cheapest True Price')).toBeDefined();
+    expect(screen.getByText('Cheapest')).toBeDefined();
   });
 });

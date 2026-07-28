@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Search, X, Sparkles, TrendingUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, X, Sparkles } from 'lucide-react';
+import { getApiUrl } from '../config/api';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -7,12 +8,12 @@ interface SearchBarProps {
 }
 
 const CATEGORY_PILLS = [
-  { id: 'dairy', label: '🥛 Dairy & Eggs', query: 'Amul Milk' },
-  { id: 'staples', label: '🌾 Staples & Atta', query: 'Aashirvaad Atta' },
-  { id: 'oil', label: '🌻 Edible Oil', query: 'Fortune Sunflower Oil' },
-  { id: 'instant', label: '🍜 Instant Noodles', query: 'Maggi Noodles' },
-  { id: 'clean', label: '🧺 Household & Washing', query: 'Surf Excel' },
-  { id: 'drinks', label: '🥤 Cold Drinks', query: 'Coca-Cola' },
+  { id: 'dairy',   label: '🥛 Dairy',    query: 'Amul Milk' },
+  { id: 'staples', label: '🌾 Atta',     query: 'Aashirvaad Atta' },
+  { id: 'oil',     label: '🌻 Oil',      query: 'Fortune Sunflower Oil' },
+  { id: 'instant', label: '🍜 Noodles',  query: 'Maggi Noodles' },
+  { id: 'clean',   label: '🧺 Detergent',query: 'Surf Excel' },
+  { id: 'drinks',  label: '🥤 Drinks',   query: 'Coca-Cola' },
 ];
 
 export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, lang }) => {
@@ -20,106 +21,73 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, lang }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  useEffect(() => {
-    if (query.trim().length > 1) {
-      fetch(`/api/products/suggestions?q=${encodeURIComponent(query)}`)
+  const fetchSuggestions = (q: string) => {
+    if (q.trim().length > 1) {
+      fetch(getApiUrl(`/api/products/suggestions?q=${encodeURIComponent(q)}`))
         .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data)) setSuggestions(data);
-        })
+        .then((data) => { if (Array.isArray(data)) setSuggestions(data); })
         .catch(() => {});
     } else {
       setSuggestions([]);
     }
-  }, [query]);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      setShowDropdown(false);
-      onSearch(query.trim());
-    }
+    if (query.trim()) { setShowDropdown(false); onSearch(query.trim()); }
   };
 
-  const handleSelectSuggestion = (s: string) => {
-    setQuery(s);
-    setShowDropdown(false);
-    onSearch(s);
+  const handleSelect = (s: string) => {
+    setQuery(s); setShowDropdown(false); onSearch(s);
   };
 
   return (
-    <div className="mb-6 space-y-4">
-      {/* Main Search Input Form */}
+    <div className="mb-5 space-y-3">
+      {/* Search Input */}
       <form onSubmit={handleSubmit} className="relative">
         <div className="relative flex items-center">
-          <Search className="absolute left-4 w-5 h-5 text-indigo-400 pointer-events-none" />
+          <Search className="absolute left-3.5 w-4 h-4 text-indigo-400 pointer-events-none" />
           <input
-            type="text"
+            type="search"
             value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setShowDropdown(true);
-            }}
+            onChange={(e) => { setQuery(e.target.value); setShowDropdown(true); fetchSuggestions(e.target.value); }}
             onFocus={() => setShowDropdown(true)}
-            placeholder={
-              lang === 'hi'
-                ? 'ग्रोसरी सर्च करें (उदा. अमूल दूध, टाटा नमक, मैगी)...'
-                : 'Search any grocery product (e.g. Amul Milk, Tata Salt, Maggi)...'
-            }
-            className="w-full bg-slate-900/90 border-2 border-indigo-500/40 hover:border-indigo-500 text-slate-100 placeholder-slate-500 rounded-2xl pl-12 pr-28 py-3.5 text-base font-medium shadow-xl focus:outline-none focus:border-indigo-500 transition-all"
+            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+            placeholder={lang === 'hi' ? 'ग्रोसरी सर्च करें…' : 'Search grocery (e.g. Amul Milk)…'}
+            className="w-full bg-slate-900/90 border-2 border-indigo-500/40 focus:border-indigo-500 text-slate-100 placeholder-slate-500 rounded-2xl pl-10 pr-24 py-3 text-sm font-medium focus:outline-none transition-all"
           />
-
           {query && (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery('');
-                setSuggestions([]);
-              }}
-              className="absolute right-24 p-1 text-slate-400 hover:text-slate-200"
-            >
+            <button type="button" onClick={() => { setQuery(''); setSuggestions([]); }}
+              className="absolute right-20 p-1 text-slate-500 hover:text-slate-300">
               <X className="w-4 h-4" />
             </button>
           )}
-
-          <button
-            type="submit"
-            className="absolute right-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-md transition-all flex items-center gap-1"
-          >
-            <span>{lang === 'hi' ? 'खोजें' : 'Compare'}</span>
+          <button type="submit"
+            className="absolute right-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-4 py-1.5 rounded-xl text-sm shadow transition-all">
+            {lang === 'hi' ? 'खोजें' : 'Compare'}
           </button>
         </div>
 
-        {/* Suggestions Dropdown */}
+        {/* Suggestions */}
         {showDropdown && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-40 overflow-hidden divide-y divide-slate-800">
-            {suggestions.map((s, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSelectSuggestion(s)}
-                className="w-full px-4 py-3 text-left text-sm font-medium text-slate-200 hover:bg-slate-800/80 flex items-center gap-3 transition-colors"
-              >
-                <TrendingUp className="w-4 h-4 text-indigo-400" />
-                <span>{s}</span>
+          <div className="absolute top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-40 overflow-hidden">
+            {suggestions.map((s, i) => (
+              <button key={i} type="button" onMouseDown={() => handleSelect(s)}
+                className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2 transition-colors">
+                <Search className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                {s}
               </button>
             ))}
           </div>
         )}
       </form>
 
-      {/* Category Quick Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        <span className="text-xs font-bold text-slate-400 flex items-center gap-1 shrink-0">
-          <Sparkles className="w-3.5 h-3.5 text-pink-400" />
-          Quick:
-        </span>
+      {/* Category Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <Sparkles className="w-3.5 h-3.5 text-pink-400 shrink-0" />
         {CATEGORY_PILLS.map((pill) => (
-          <button
-            key={pill.id}
-            onClick={() => handleSelectSuggestion(pill.query)}
-            className="bg-slate-800/70 hover:bg-slate-700/90 text-slate-300 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-700/80 whitespace-nowrap transition-all"
-          >
+          <button key={pill.id} onClick={() => handleSelect(pill.query)}
+            className="bg-slate-800/70 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-700/80 whitespace-nowrap transition-all shrink-0">
             {pill.label}
           </button>
         ))}
