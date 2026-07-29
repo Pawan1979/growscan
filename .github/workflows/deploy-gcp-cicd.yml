@@ -97,7 +97,14 @@ jobs:
       # Build & Deploy Frontend
       - name: Build Frontend Image
         run: |
-          docker build -t asia-south1-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/grocscan-repo/grocscan-frontend:test ./frontend
+          docker build \
+            --build-arg VITE_FIREBASE_API_KEY=AIzaSyDq6eEP7lOVr3eokjRQlUDeTSL5cU6_vzE \
+            --build-arg VITE_FIREBASE_AUTH_DOMAIN=grocscan-app.firebaseapp.com \
+            --build-arg VITE_FIREBASE_PROJECT_ID=grocscan-app \
+            --build-arg VITE_FIREBASE_STORAGE_BUCKET=grocscan-app.firebasestorage.app \
+            --build-arg VITE_FIREBASE_MESSAGING_SENDER_ID=465432927692 \
+            --build-arg VITE_FIREBASE_APP_ID=1:465432927692:web:24ddb68d6eb69c6f2cd169 \
+            -t asia-south1-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/grocscan-repo/grocscan-frontend:test ./frontend
 
       - name: Push Frontend Image
         run: |
