@@ -4,6 +4,7 @@ import { normalizePlatformPrice, PLATFORM_FEES } from './normalizer.service';
 import { resolveLocation } from './location.service';
 import { CacheService } from './cache.service';
 import { PreloadService } from './preload.service';
+import { CatalogService } from './catalog.service';
 
 const QC_API_KEY = process.env.QC_API_KEY || '';
 
@@ -87,16 +88,19 @@ export class PriceService {
   /**
    * Search and compare prices across platforms for a query & pincode
    */
-  static async comparePrices(query: string, pincode: string, userPasses: string[] = []): Promise<ComparisonResult> {
+  static async comparePrices(query: string, pincode: string, userPasses: string[] = [], uid?: string): Promise<ComparisonResult> {
     // Track user search dynamically for adaptive catalog preloading
     PreloadService.trackSearch(query);
+    
+    // Log search to permanent Firestore analytics
+    CatalogService.logSearch(query, pincode, uid).catch(console.error);
 
     const passesKey = userPasses.sort().join(',');
     const cacheKey = `prices:${query.toLowerCase().replace(/\s+/g, '-')}:${pincode}:${passesKey}`;
     const cached = await CacheService.get<ComparisonResult>(cacheKey);
     if (cached) return cached;
 
-    const location = resolveLocation(pincode);
+    const location = await resolveLocation(pincode);
 
     // If QuickCommerceAPI key exists in environment, attempt live API call
     if (QC_API_KEY && QC_API_KEY.trim().length > 0) {
@@ -139,6 +143,9 @@ export class PriceService {
     results: PlatformPrice[],
     cacheKey: string
   ): Promise<ComparisonResult> {
+    // Save to permanent Firestore catalog
+    CatalogService.savePriceResults(query, location.pincode, results).catch(console.error);
+
     // Sort available results by true total
     const available = results.filter((r) => r.available);
     const sorted = [...results].sort((a, b) => {
@@ -212,7 +219,7 @@ export class PriceService {
    * Full Cart Comparison
    */
   static async compareCart(items: CartItemInput[], pincode: string): Promise<CartComparisonResult> {
-    const location = resolveLocation(pincode);
+    const location = await resolveLocation(pincode);
     const platformIds = ['zepto', 'blinkit', 'instamart', 'bigbasket', 'dmart'];
 
     const platformSummaries: PlatformCartSummary[] = [];

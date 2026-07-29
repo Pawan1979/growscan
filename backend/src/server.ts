@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+dotenv.config();
+
 import rateLimit from 'express-rate-limit';
 
 import compareRouter from './routes/compare.route';
@@ -9,8 +11,7 @@ import barcodeRouter from './routes/barcode.route';
 import productsRouter from './routes/products.route';
 import alertsRouter from './routes/alerts.route';
 import { PreloadService } from './services/preload.service';
-
-dotenv.config();
+import './services/firebase.service'; // Initialize Firebase Admin
 
 const app = express();
 const PORT = process.env.PORT || 5000;

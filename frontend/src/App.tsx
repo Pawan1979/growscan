@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { SearchBar } from './components/SearchBar';
@@ -10,9 +10,12 @@ import { PriceAlertModal } from './components/PriceAlertModal';
 import { AlertsManager } from './components/AlertsManager';
 import { PassSelector } from './components/PassSelector';
 import { InstallPwaBanner } from './components/InstallPwaBanner';
+import { LoginModal } from './components/LoginModal';
 import { ComparisonResult, CartItem, PlatformPrice } from './types';
 import { Share2 } from 'lucide-react';
 import { getApiUrl } from './config/api';
+import { auth } from './config/firebase';
+import { onAuthStateChanged, User, RecaptchaVerifier } from 'firebase/auth';
 
 export const App: React.FC = () => {
   const [pincode, setPincode] = useState('400001');
@@ -40,6 +43,49 @@ export const App: React.FC = () => {
   // GPS auto-detection state
   const [locationStatus, setLocationStatus] = useState<'detecting' | 'granted' | 'denied' | 'idle'>('idle');
   const [openLocationModal, setOpenLocationModal] = useState(false);
+
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // ── reCAPTCHA lives here in App, NOT in LoginModal ──────────────────────
+  // This is the key fix: the verifier is created once and never destroyed
+  // during the OTP flow, preventing the "element removed" crash.
+  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+
+  // Track previous user to detect login transitions (null → logged in)
+  const prevUserRef = useRef<User | null | undefined>(undefined);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // When user transitions from null → logged in, clear the search count and re-search
+  useEffect(() => {
+    if (prevUserRef.current === null && user !== null) {
+      localStorage.removeItem('dailySearchCount');
+      handleSearch(currentQuery, activePasses);
+    }
+    prevUserRef.current = user;
+  }, [user]);
+
+  // Initialize reCAPTCHA once the recaptcha-container div is mounted
+  useEffect(() => {
+    if (recaptchaContainerRef.current && !recaptchaVerifierRef.current) {
+      try {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+          size: 'invisible',
+        });
+      } catch (e) {
+        console.error('Failed to init reCAPTCHA in App:', e);
+      }
+    }
+  }, []);
 
   // ── Auto-detect location on first load ──────────────────────────────────
   useEffect(() => {
@@ -94,15 +140,55 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  const getSearchCount = () => {
+    const data = localStorage.getItem('dailySearchCount');
+    if (!data) return 0;
+    try {
+      const parsed = JSON.parse(data);
+      const today = new Date().toISOString().split('T')[0];
+      if (parsed.date !== today) return 0;
+      return parsed.count;
+    } catch {
+      return 0;
+    }
+  };
+
+  const incrementSearchCount = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const count = getSearchCount() + 1;
+    localStorage.setItem('dailySearchCount', JSON.stringify({ date: today, count }));
+    return count;
+  };
+
   // Perform search call to backend with active passes
-  const handleSearch = (query: string, passes: string[] = activePasses) => {
+  const handleSearch = async (query: string, passes: string[] = activePasses) => {
+    if (!user) {
+      const count = getSearchCount();
+      if (count >= 3) {
+        setShowLoginModal(true);
+        return; // Block search
+      }
+      incrementSearchCount();
+    }
+
     setCurrentQuery(query);
     setLoading(true);
     const passesParam = passes.join(',');
-    fetch(getApiUrl(`/api/compare?q=${encodeURIComponent(query)}&pin=${pincode}&passes=${passesParam}`))
+
+    let token = '';
+    if (user) {
+      try { token = await user.getIdToken(); } catch (e) {}
+    }
+
+    fetch(getApiUrl(`/api/compare?q=${encodeURIComponent(query)}&pin=${pincode}&passes=${passesParam}`), {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
       .then((res) => res.json())
       .then((data) => {
-        setSearchResult(data);
+        // Only store valid results — ignore error responses from the backend
+        if (data?.results && Array.isArray(data.results)) {
+          setSearchResult(data);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -112,8 +198,10 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    handleSearch(currentQuery, activePasses);
-  }, [pincode, activePasses]);
+    if (!authLoading) {
+      handleSearch(currentQuery, activePasses);
+    }
+  }, [pincode, activePasses, authLoading]);
 
   const handleTogglePass = (passId: string) => {
     const updated = activePasses.includes(passId)
@@ -152,6 +240,9 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-8">
+
+      {/* Persistent invisible reCAPTCHA container — lives in App root, never unmounts */}
+      <div ref={recaptchaContainerRef} id="recaptcha-container" style={{ display: 'none' }} />
 
       {/* GPS Detecting Toast */}
       {locationStatus === 'detecting' && (
@@ -209,7 +300,7 @@ export const App: React.FC = () => {
                 <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
                   <span>Results for "{currentQuery}"</span>
                   <span className="text-xs font-medium text-slate-400">
-                    ({searchResult?.results.length || 0} platforms)
+                    ({searchResult?.results?.length || 0} platforms)
                   </span>
                 </h2>
                 {searchResult && (
@@ -219,7 +310,7 @@ export const App: React.FC = () => {
                 )}
               </div>
 
-              {searchResult && searchResult.results.length > 0 && (
+              {searchResult && (searchResult.results?.length || 0) > 0 && (
                 <button
                   onClick={() =>
                     setShareItem({
@@ -243,7 +334,7 @@ export const App: React.FC = () => {
                 ))}
               </div>
             ) : (
-              searchResult && (
+              searchResult && Array.isArray(searchResult.results) && (
                 <div className="space-y-3">
                   {searchResult.results.map((item) => {
                     const isCheapest = item.platformName === searchResult.cheapestPlatform;
@@ -309,6 +400,18 @@ export const App: React.FC = () => {
           pincode={pincode}
           onClose={() => setAlertItem(null)}
           onAlertCreated={() => setAlertsCount((c) => c + 1)}
+        />
+      )}
+
+      {showLoginModal && (
+        <LoginModal
+          appVerifier={recaptchaVerifierRef.current}
+          onClose={() => setShowLoginModal(false)}
+          onSuccess={() => {
+            // Just close the modal — the user state change effect above will
+            // detect the login transition and trigger the search safely
+            setShowLoginModal(false);
+          }}
         />
       )}
 

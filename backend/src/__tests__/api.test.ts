@@ -1,5 +1,12 @@
 import request from 'supertest';
 import express from 'express';
+
+// Mock firebase-admin to prevent Jest ESM parsing errors on "jose" dependency
+jest.mock('firebase-admin/auth', () => ({
+  getAuth: jest.fn(() => ({
+    verifyIdToken: jest.fn().mockResolvedValue({ uid: 'test-user-123' })
+  }))
+}));
 import compareRouter from '../routes/compare.route';
 import cartRouter from '../routes/cart.route';
 import barcodeRouter from '../routes/barcode.route';

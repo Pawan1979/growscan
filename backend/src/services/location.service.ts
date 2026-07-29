@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 export interface LocationInfo {
   pincode: string;
   city: string;
@@ -19,19 +21,36 @@ const PINCODE_DATABASE: Record<string, { city: string; state: string; lat: numbe
   '380001': { city: 'Lal Darwaja, Ahmedabad', state: 'Gujarat', lat: 23.02, lng: 72.57 }
 };
 
-export function resolveLocation(pincode: string = '400001'): LocationInfo {
+export async function resolveLocation(pincode: string = '400001'): Promise<LocationInfo> {
   const cleanPin = pincode.trim();
   const found = PINCODE_DATABASE[cleanPin];
   if (found) {
     return { pincode: cleanPin, ...found };
   }
 
-  // Fallback default (Mumbai)
+  try {
+    const res = await axios.get(`https://api.postalpincode.in/pincode/${cleanPin}`);
+    const data = res.data[0];
+    if (data && data.Status === 'Success' && data.PostOffice && data.PostOffice.length > 0) {
+      const po = data.PostOffice[0];
+      return {
+        pincode: cleanPin,
+        city: po.District || po.Name,
+        state: po.State,
+        lat: 20.0,
+        lng: 77.0
+      };
+    }
+  } catch (err) {
+    console.warn(`Failed to fetch location for pincode ${cleanPin}:`, err);
+  }
+
+  // Fallback default (Unknown)
   return {
     pincode: cleanPin || '400001',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    lat: 18.96,
-    lng: 72.82
+    city: 'Unknown City',
+    state: 'India',
+    lat: 20.0,
+    lng: 77.0
   };
 }
