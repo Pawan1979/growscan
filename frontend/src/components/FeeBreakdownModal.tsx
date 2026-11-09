@@ -93,10 +93,15 @@ export const FeeBreakdownModal: React.FC<FeeBreakdownModalProps> = ({ item, onCl
           </div>
         </div>
 
-        {/* Trust Badge */}
-        <div className="bg-emerald-950/40 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-2 text-xs text-emerald-300">
-          <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
-          <span>GrocScan guarantees transparent price auditing with zero hidden fees.</span>
+        {/* Dynamic Disclaimer */}
+        <div className="bg-amber-950/40 border border-amber-500/20 rounded-xl p-3 flex flex-col gap-1 text-xs text-amber-300 mt-3">
+          <div className="flex items-center gap-2 font-bold">
+            <Info className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>Real-time Pricing Disclaimer</span>
+          </div>
+          <span className="text-[11px] leading-relaxed text-amber-200/80">
+            *Product base prices are updated daily. However, <strong>Surge Pricing, Delivery Fees, and Stock Availability</strong> can change minute-by-minute on the actual platform due to weather, traffic, or high demand.
+          </span>
         </div>
 
         <button
